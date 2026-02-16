@@ -2,7 +2,6 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "gunicorn 'symbols_mcp.server:flask_app' --bind 0.0.0.0:$PORT --workers 2"
 healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
@@ -16,7 +15,6 @@ source = "."
 PORT = "8080"
 PYTHON_VERSION = "3.11"
 RAILWAY_ENVIRONMENT = "production"
-FLASK_APP = "proxy_api.py"
 
 # Environment variables should be set in Railway dashboard
 # Do not reference them here to avoid secret detection
