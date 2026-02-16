@@ -783,40 +783,39 @@ Paste your code below:"""
 
 
 # ---------------------------------------------------------------------------
-# HTTP Proxy API for Railway
+# Health Check for Railway
 # ---------------------------------------------------------------------------
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
-# Create Flask app for HTTP proxy
-flask_app = Flask(__name__)
-CORS(flask_app)
+# Create FastAPI app for health check
+app = FastAPI()
 
-@flask_app.route("/health", methods=["GET"])
-def health_check():
+@app.get("/health")
+async def health_check():
     """Health check endpoint for Railway."""
-    return jsonify({
+    return JSONResponse({
         "status": "healthy",
-        "service": "Symbols MCP Proxy",
+        "server": "Symbols MCP Server",
         "tools": len(mcp._tool_manager.list_tools()),
         "resources": len(mcp._resource_manager.list_resources()),
         "prompts": len(mcp._prompt_manager.list_prompts())
     })
 
-@flask_app.route("/api/chat", methods=["POST"])
-def proxy_chat():
-    """Proxy chat completions to OpenRouter."""
+@app.post("/api/chat")
+async def proxy_chat(request: dict):
+    """Proxy chat completions to OpenRouter (for users without API keys)."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        return jsonify({"error": "Server configuration error"}), 500
+        return JSONResponse({"error": "Server configuration error"}, status_code=500)
     
-    data = request.json
-    if not data or "messages" not in data:
-        return jsonify({"error": "Invalid request - messages required"}), 400
+    # Validate request
+    if not request or "messages" not in request:
+        return JSONResponse({"error": "Invalid request - messages required"}, status_code=400)
     
     try:
-        with httpx.Client() as client:
-            response = client.post(
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
@@ -824,17 +823,68 @@ def proxy_chat():
                     "HTTP-Referer": "https://github.com/baronsilver/symbols-mcp-server",
                 },
                 json={
-                    "model": data.get("model", "openai/gpt-4.1-mini"),
-                    "messages": data["messages"],
-                    "max_tokens": data.get("max_tokens", 4000),
-                    "temperature": data.get("temperature", 0.7),
+                    "model": request.get("model", "openai/gpt-4.1-mini"),
+                    "messages": request["messages"],
+                    "max_tokens": request.get("max_tokens", 4000),
+                    "temperature": request.get("temperature", 0.7),
                 },
                 timeout=60.0,
             )
             response.raise_for_status()
-            return jsonify(response.json())
+            return JSONResponse(response.json())
     except httpx.HTTPError as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/")
+async def root():
+    """Root endpoint - redirect to health."""
+    return JSONResponse({
+        "name": "Symbols MCP Server",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health",
+            "sse": "/sse"
+        }
+    })
+
+@app.get("/sse")
+async def sse_endpoint():
+    """SSE endpoint for MCP HTTP transport."""
+    from sse_starlette.sse import EventSourceResponse
+    
+    async def event_generator():
+        # Send server info
+        yield {
+            "event": "endpoint",
+            "data": json.dumps({
+                "jsonrpc": "2.0",
+                "method": "endpoint",
+                "params": {
+                    "uri": "/message"
+                }
+            })
+        }
+    
+    return EventSourceResponse(event_generator())
+
+@app.post("/message")
+async def message_endpoint(request: dict):
+    """Message endpoint for MCP HTTP transport."""
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": request.get("id"),
+        "result": {
+            "server": {
+                "name": "Symbols AI Assistant",
+                "version": "1.0.0"
+            },
+            "capabilities": {
+                "tools": {},
+                "resources": {},
+                "prompts": {}
+            }
+        }
+    })
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -844,9 +894,10 @@ def main():
     # Check if running in Railway (HTTP) or local (stdio)
     transport = os.getenv("RAILWAY_ENVIRONMENT", "stdio")
     if transport == "production":
-        # Railway deployment - run Flask proxy app
+        # Railway deployment - run FastAPI app directly
+        import uvicorn
         port = int(os.getenv("PORT", 8080))
-        flask_app.run(host="0.0.0.0", port=port)
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         # Local development - use stdio transport
         mcp.run(transport="stdio")

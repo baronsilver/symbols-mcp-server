@@ -41,7 +41,7 @@ An MCP (Model Context Protocol) server that exposes the Symbols/DOMQL v3 AI assi
 
 ## Installation
 
-### Quick Start
+### Quick Start (No API Keys Required!)
 
 1. **Clone the repository**:
 ```bash
@@ -58,8 +58,9 @@ uv sync
 3. **Configure**:
 ```bash
 cp .env.example .env
-# Edit .env and add your OPENROUTER_API_KEY
-# Or contact maintainer for shared proxy access
+# Edit .env and add either:
+# - SYMBOLS_MCP_URL (contact maintainer for public server URL)
+# - Or your own OPENROUTER_API_KEY from https://openrouter.ai
 ```
 
 4. **Test the server**:
@@ -67,7 +68,19 @@ cp .env.example .env
 uv run symbols-mcp
 ```
 
-See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
+### Advanced: Use Your Own API Key
+
+If you prefer to use your own OpenRouter API key:
+
+1. Get an API key from https://openrouter.ai
+2. Edit `.env` and replace:
+```bash
+# Comment out the proxy URL
+# SYMBOLS_MCP_URL=your_mcp_server_url_here
+
+# Add your own key
+OPENROUTER_API_KEY=your_key_here
+```
 
 ---
 
@@ -84,15 +97,17 @@ Or manually edit `~/.claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "symbols-mcp": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
+      "command": "python",
+      "args": ["-m", "uv", "run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
       "env": {
-        "OPENROUTER_API_KEY": "your_key_here"
+        "SYMBOLS_MCP_URL": "your_mcp_server_url_here"
       }
     }
   }
 }
 ```
+
+Contact the maintainer for the public server URL, or use your own OPENROUTER_API_KEY.
 
 ### Cursor
 
@@ -114,21 +129,23 @@ Add to your Cursor MCP settings (`.cursor/mcp.json` in your project or global se
 
 ### Windsurf
 
-Add to your Windsurf MCP configuration (`~/.codeium/windsurf/mcp_config.json`):
+Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "symbols-mcp": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
+      "command": "python",
+      "args": ["-m", "uv", "run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
       "env": {
-        "OPENROUTER_API_KEY": "your_key_here"
+        "SYMBOLS_MCP_URL": "your_mcp_server_url_here"
       }
     }
   }
 }
 ```
+
+Contact the maintainer for the public server URL, or use your own OPENROUTER_API_KEY.
 
 ### Alternative: Using pip
 
