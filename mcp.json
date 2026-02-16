@@ -1,0 +1,57 @@
+{
+  "name": "symbols-mcp",
+  "version": "1.0.0",
+  "description": "AI-powered assistant for the Symbols design-system framework. Generates DOMQL v3 components, pages, and full projects; converts React/Angular/Vue code to Symbols; searches Symbols documentation; and provides comprehensive framework reference.",
+  "author": "baronsilver",
+  "license": "MIT",
+  "homepage": "https://github.com/baronsilver/symbols-mcp-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baronsilver/symbols-mcp-server.git"
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "generate_component",
+        "description": "Generate a Symbols/DOMQL v3 component from a natural-language description"
+      },
+      {
+        "name": "generate_page",
+        "description": "Generate a Symbols/DOMQL v3 page with routing support"
+      },
+      {
+        "name": "generate_project",
+        "description": "Generate a complete multi-file Symbols/DOMQL v3 project structure"
+      },
+      {
+        "name": "convert_to_symbols",
+        "description": "Convert React, Angular, Vue, or HTML code to Symbols/DOMQL v3 format"
+      },
+      {
+        "name": "search_symbols_docs",
+        "description": "Search the Symbols documentation knowledge base for relevant information"
+      },
+      {
+        "name": "explain_symbols_concept",
+        "description": "Explain a Symbols/DOMQL concept with examples (state, routing, events, design tokens, etc.)"
+      },
+      {
+        "name": "review_symbols_code",
+        "description": "Review Symbols/DOMQL code for correctness, best practices, and v3 compliance"
+      },
+      {
+        "name": "create_design_system",
+        "description": "Generate Symbols design system files (colors, spacing, typography, theme, icons)"
+      }
+    ],
+    "resources": 9,
+    "prompts": 4
+  },
+  "installation": {
+    "command": "python",
+    "args": ["-m", "uv", "run", "--directory", "{INSTALL_DIR}", "symbols-mcp"],
+    "env": {
+      "OPENROUTER_API_KEY": "required"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "@baronsilver/symbols-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Symbols/DOMQL v3 AI assistant - generates components, pages, projects, and converts React/Angular/Vue to Symbols",
+  "main": "symbols_mcp/server.py",
+  "bin": {
+    "symbols-mcp": "./run.sh"
+  },
+  "scripts": {
+    "start": "python -m symbols_mcp.server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baronsilver/symbols-mcp-server.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "symbols",
+    "domql",
+    "ai",
+    "code-generation",
+    "react-to-symbols",
+    "vue-to-symbols",
+    "angular-to-symbols",
+    "design-system"
+  ],
+  "author": "baronsilver",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/baronsilver/symbols-mcp-server/issues"
+  },
+  "homepage": "https://github.com/baronsilver/symbols-mcp-server#readme"
+}

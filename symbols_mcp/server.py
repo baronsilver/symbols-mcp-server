@@ -783,11 +783,41 @@ async def health_check():
         "prompts": len(mcp._prompt_manager.list_prompts())
     })
 
-@app.post("/mcp")
-async def mcp_endpoint(request: dict):
-    """MCP HTTP endpoint for Railway deployment."""
-    # For now, just return a basic response
-    # Full MCP HTTP transport implementation would be more complex
+@app.get("/")
+async def root():
+    """Root endpoint - redirect to health."""
+    return JSONResponse({
+        "name": "Symbols MCP Server",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health",
+            "sse": "/sse"
+        }
+    })
+
+@app.get("/sse")
+async def sse_endpoint():
+    """SSE endpoint for MCP HTTP transport."""
+    from sse_starlette.sse import EventSourceResponse
+    
+    async def event_generator():
+        # Send server info
+        yield {
+            "event": "endpoint",
+            "data": json.dumps({
+                "jsonrpc": "2.0",
+                "method": "endpoint",
+                "params": {
+                    "uri": "/message"
+                }
+            })
+        }
+    
+    return EventSourceResponse(event_generator())
+
+@app.post("/message")
+async def message_endpoint(request: dict):
+    """Message endpoint for MCP HTTP transport."""
     return JSONResponse({
         "jsonrpc": "2.0",
         "id": request.get("id"),
@@ -797,9 +827,9 @@ async def mcp_endpoint(request: dict):
                 "version": "1.0.0"
             },
             "capabilities": {
-                "tools": len(mcp._tool_manager.list_tools()),
-                "resources": len(mcp._resource_manager.list_resources()),
-                "prompts": len(mcp._prompt_manager.list_prompts())
+                "tools": {},
+                "resources": {},
+                "prompts": {}
             }
         }
     })

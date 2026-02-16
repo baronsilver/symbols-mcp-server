@@ -205,3 +205,65 @@ symbols-mcp-server/
 The server reads skills files at startup and uses them as context for all AI-powered tools.
 When Supabase is configured, the `search_symbols_docs` tool also queries the vector database
 for additional documentation matches.
+
+---
+
+## Publishing
+
+### NPM Package (Recommended)
+
+To make your MCP server easily installable via `npx` or `npm`:
+
+1. **Create `package.json`**:
+```json
+{
+  "name": "@baronsilver/symbols-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Symbols/DOMQL v3 AI assistant",
+  "bin": {
+    "symbols-mcp": "./run.sh"
+  },
+  "repository": "baronsilver/symbols-mcp-server",
+  "keywords": ["mcp", "symbols", "domql", "ai", "code-generation"],
+  "license": "MIT"
+}
+```
+
+2. **Publish to NPM**:
+```bash
+npm login
+npm publish --access public
+```
+
+3. **Users can install with**:
+```bash
+npx @baronsilver/symbols-mcp
+```
+
+### PyPI Package
+
+To publish as a Python package:
+
+```bash
+python -m build
+python -m twine upload dist/*
+```
+
+Users can then install with:
+```bash
+pip install symbols-mcp-server
+```
+
+### MCP Registry
+
+Submit to the official MCP registry at https://github.com/modelcontextprotocol/servers
+
+Create a PR adding your server to the registry with the `mcp.json` metadata.
+
+### Smithery (MCP Marketplace)
+
+Publish to Smithery at https://smithery.ai for broader discovery.
+
+1. Create account at https://smithery.ai
+2. Submit your GitHub repository
+3. Users can install with one click
