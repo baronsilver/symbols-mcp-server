@@ -1,0 +1,28 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python -m uv run symbols-mcp"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "symbols-mcp"
+source = "."
+
+[services.variables]
+PORT = "8080"
+PYTHON_VERSION = "3.11"
+RAILWAY_ENVIRONMENT = "production"
+
+[services.environment]
+OPENROUTER_API_KEY = "${OPENROUTER_API_KEY}"
+SUPABASE_URL = "${SUPABASE_URL}"
+SUPABASE_KEY = "${SUPABASE_KEY}"
+LLM_MODEL = "${LLM_MODEL}"
+
+[[services.ports]]
+port = 8080
+protocol = "HTTP"
