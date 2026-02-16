@@ -22,7 +22,7 @@ def health():
     return jsonify({"status": "healthy", "service": "Symbols MCP Proxy"})
 
 @app.route("/api/chat", methods=["POST"])
-async def chat():
+def chat():
     """Proxy chat completions to OpenRouter."""
     if not OPENROUTER_API_KEY:
         return jsonify({"error": "Server configuration error"}), 500
@@ -37,8 +37,8 @@ async def chat():
     # In production, use Redis or similar for distributed rate limiting
     
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        with httpx.Client() as client:
+            response = client.post(
                 f"{OPENROUTER_BASE_URL}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
