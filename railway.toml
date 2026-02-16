@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python proxy_api.py"
+startCommand = "flask run --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
@@ -16,6 +16,7 @@ source = "."
 PORT = "8080"
 PYTHON_VERSION = "3.11"
 RAILWAY_ENVIRONMENT = "production"
+FLASK_APP = "proxy_api.py"
 
 # Environment variables should be set in Railway dashboard
 # Do not reference them here to avoid secret detection
