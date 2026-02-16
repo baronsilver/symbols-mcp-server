@@ -58,7 +58,7 @@ def _read_skill(filename: str) -> str:
 async def _call_openrouter(prompt: str, max_tokens: int = 4000) -> str:
     """Call OpenRouter API for AI generation via proxy or direct."""
     # Check if using proxy (no API key needed) or direct (API key required)
-    proxy_url = os.getenv("SYMBOLS_PROXY_URL")
+    proxy_url = os.getenv("SYMBOLS_MCP_URL")
     api_key = os.getenv("OPENROUTER_API_KEY")
     
     if proxy_url:
@@ -101,7 +101,7 @@ async def _call_openrouter(prompt: str, max_tokens: int = 4000) -> str:
             result = response.json()
             return result["choices"][0]["message"]["content"]
     else:
-        return "Error: Either SYMBOLS_PROXY_URL or OPENROUTER_API_KEY must be set"
+        return "Error: Either SYMBOLS_MCP_URL or OPENROUTER_API_KEY must be set"
 
 
 def _clean_code_response(text: str) -> str:

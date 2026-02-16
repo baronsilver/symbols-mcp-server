@@ -1,6 +1,6 @@
 # Symbols MCP Server - Installation Guide
 
-## Quick Start (No API Keys Required!)
+## Quick Start
 
 ### 1. Clone the Repository
 ```bash
@@ -14,12 +14,12 @@ pip install uv
 uv sync
 ```
 
-### 3. Configure (Copy the public config)
+### 3. Configure
 ```bash
-cp .env.public .env
+cp .env.example .env
+# Edit .env and add your OPENROUTER_API_KEY
+# Or contact maintainer for shared proxy URL
 ```
-
-That's it! No API keys needed - the server uses a public proxy.
 
 ---
 
@@ -36,7 +36,7 @@ Edit `~/.codeium/windsurf/mcp_config.json`:
       "command": "python",
       "args": ["-m", "uv", "run", "--directory", "/path/to/symbols-mcp-server", "symbols-mcp"],
       "env": {
-        "SYMBOLS_PROXY_URL": "https://symbols-mcp-server-production.up.railway.app"
+        "OPENROUTER_API_KEY": "your_key_here"
       }
     }
   }
@@ -58,7 +58,7 @@ Edit `~/.config/claude/mcp.json` (macOS/Linux) or `%APPDATA%\Claude\claude_deskt
       "command": "python",
       "args": ["-m", "uv", "run", "--directory", "/path/to/symbols-mcp-server", "symbols-mcp"],
       "env": {
-        "SYMBOLS_PROXY_URL": "https://symbols-mcp-server-production.up.railway.app"
+        "OPENROUTER_API_KEY": "your_key_here"
       }
     }
   }
@@ -86,27 +86,41 @@ Once configured, you'll have access to 8 AI-powered tools:
 
 ---
 
-## Advanced: Use Your Own API Key
+## Configuration Options
 
-If you prefer to use your own OpenRouter API key:
+### Option 1: Shared Proxy (Recommended for group members)
 
-1. Get an API key from https://openrouter.ai
-2. Edit `.env`:
+Contact the maintainer for the shared proxy URL, then edit `.env`:
 ```bash
-# Comment out the proxy
-# SYMBOLS_PROXY_URL=https://symbols-mcp-server-production.up.railway.app
+SYMBOLS_MCP_URL=<provided_proxy_url>
+```
 
-# Add your key
+Update your Windsurf/Claude Code config:
+```json
+"env": {
+  "SYMBOLS_MCP_URL": "<provided_proxy_url>"
+}
+```
+
+### Option 2: Your Own API Key
+
+Get an API key from https://openrouter.ai and edit `.env`:
+```bash
 OPENROUTER_API_KEY=your_key_here
 ```
 
-3. Update your Windsurf/Claude Code config to use `OPENROUTER_API_KEY` instead of `SYMBOLS_PROXY_URL`
+Update your Windsurf/Claude Code config:
+```json
+"env": {
+  "OPENROUTER_API_KEY": "your_key_here"
+}
+```
 
 ---
 
 ## Troubleshooting
 
-### "Error: Either SYMBOLS_PROXY_URL or OPENROUTER_API_KEY must be set"
+### "Error: Either SYMBOLS_MCP_URL or OPENROUTER_API_KEY must be set"
 
 Make sure your `.env` file has one of these set:
 ```bash
@@ -119,8 +133,7 @@ If using your own API key, verify it's correct at https://openrouter.ai
 
 ### "Connection refused"
 
-The proxy service might be down. Check status at:
-https://symbols-mcp-server-production.up.railway.app/health
+If using the shared proxy, contact the maintainer to verify service status.
 
 ---
 

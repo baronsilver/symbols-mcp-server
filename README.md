@@ -41,7 +41,7 @@ An MCP (Model Context Protocol) server that exposes the Symbols/DOMQL v3 AI assi
 
 ## Installation
 
-### Quick Start (No API Keys Required!)
+### Quick Start
 
 1. **Clone the repository**:
 ```bash
@@ -55,10 +55,11 @@ pip install uv
 uv sync
 ```
 
-3. **Configure (uses public proxy by default)**:
+3. **Configure**:
 ```bash
 cp .env.example .env
-# No API key needed! Uses public proxy by default
+# Edit .env and add your OPENROUTER_API_KEY
+# Or contact maintainer for shared proxy access
 ```
 
 4. **Test the server**:
@@ -66,16 +67,7 @@ cp .env.example .env
 uv run symbols-mcp
 ```
 
-### Advanced: Use Your Own API Key
-
-If you prefer to use your own OpenRouter API key:
-
-1. Get an API key from https://openrouter.ai
-2. Edit `.env` and uncomment:
-```bash
-# SYMBOLS_PROXY_URL=https://symbols-proxy-production.up.railway.app
-OPENROUTER_API_KEY=your_key_here
-```
+See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
 
 ---
 
