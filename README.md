@@ -63,27 +63,6 @@ cp .env.example .env
 # - Or your own OPENROUTER_API_KEY from https://openrouter.ai
 ```
 
-4. **Test the server**:
-```bash
-uv run symbols-mcp
-```
-
-### Advanced: Use Your Own API Key
-
-If you prefer to use your own OpenRouter API key:
-
-1. Get an API key from https://openrouter.ai
-2. Edit `.env` and replace:
-```bash
-# Comment out the proxy URL
-# SYMBOLS_MCP_URL=your_mcp_server_url_here
-
-# Add your own key
-OPENROUTER_API_KEY=your_key_here
-```
-
----
-
 ## Platform Integration
 
 ### Claude Code
@@ -98,16 +77,18 @@ Or manually edit `~/.claude/claude_desktop_config.json`:
   "mcpServers": {
     "symbols-mcp": {
       "command": "python",
-      "args": ["-m", "uv", "run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
-      "env": {
-        "SYMBOLS_MCP_URL": "your_mcp_server_url_here"
-      }
+      "args": [
+        "-m",
+        "uv",
+        "run",
+        "--directory",
+        "C:\\repos\\symbols-mcp-server",
+        "symbols-mcp"
+      ]
     }
   }
 }
 ```
-
-Contact the maintainer for the public server URL, or use your own OPENROUTER_API_KEY.
 
 ### Cursor
 
@@ -117,11 +98,15 @@ Add to your Cursor MCP settings (`.cursor/mcp.json` in your project or global se
 {
   "mcpServers": {
     "symbols-mcp": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
-      "env": {
-        "OPENROUTER_API_KEY": "your_key_here"
-      }
+      "command": "python",
+      "args": [
+        "-m",
+        "uv",
+        "run",
+        "--directory",
+        "C:\\repos\\symbols-mcp-server",
+        "symbols-mcp"
+      ]
     }
   }
 }
@@ -136,16 +121,18 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "symbols-mcp": {
       "command": "python",
-      "args": ["-m", "uv", "run", "--directory", "C:\\repos\\symbols-mcp-server", "symbols-mcp"],
-      "env": {
-        "SYMBOLS_MCP_URL": "your_mcp_server_url_here"
-      }
+      "args": [
+        "-m",
+        "uv",
+        "run",
+        "--directory",
+        "C:\\repos\\symbols-mcp-server",
+        "symbols-mcp"
+      ]
     }
   }
 }
 ```
-
-Contact the maintainer for the public server URL, or use your own OPENROUTER_API_KEY.
 
 ### Alternative: Using pip
 
@@ -174,27 +161,7 @@ Then use `symbols-mcp` as the command in any MCP config:
 
 ## Development
 
-### Test with MCP Inspector
-
-```bash
-# Start the server
-uv run symbols-mcp
-
-# In another terminal, use the MCP Inspector
-npx -y @modelcontextprotocol/inspector
-```
-
-### Run directly
-
-```bash
-uv run symbols-mcp
-```
-
-### Debug mode
-
-```bash
-uv run mcp dev symbols_mcp/server.py
-```
+Restart your platforms after updating the MCP settings. Once loaded, it should automatically run the MCP. Ask your AI to do the quick test with the MCP to see if it works properly.
 
 ---
 
@@ -235,62 +202,4 @@ for additional documentation matches.
 
 ---
 
-## Publishing
 
-### NPM Package (Recommended)
-
-To make your MCP server easily installable via `npx` or `npm`:
-
-1. **Create `package.json`**:
-```json
-{
-  "name": "@baronsilver/symbols-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for Symbols/DOMQL v3 AI assistant",
-  "bin": {
-    "symbols-mcp": "./run.sh"
-  },
-  "repository": "baronsilver/symbols-mcp-server",
-  "keywords": ["mcp", "symbols", "domql", "ai", "code-generation"],
-  "license": "MIT"
-}
-```
-
-2. **Publish to NPM**:
-```bash
-npm login
-npm publish --access public
-```
-
-3. **Users can install with**:
-```bash
-npx @baronsilver/symbols-mcp
-```
-
-### PyPI Package
-
-To publish as a Python package:
-
-```bash
-python -m build
-python -m twine upload dist/*
-```
-
-Users can then install with:
-```bash
-pip install symbols-mcp-server
-```
-
-### MCP Registry
-
-Submit to the official MCP registry at https://github.com/modelcontextprotocol/servers
-
-Create a PR adding your server to the registry with the `mcp.json` metadata.
-
-### Smithery (MCP Marketplace)
-
-Publish to Smithery at https://smithery.ai for broader discovery.
-
-1. Create account at https://smithery.ai
-2. Submit your GitHub repository
-3. Users can install with one click
