@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "flask run --host=0.0.0.0 --port=$PORT"
+startCommand = "gunicorn 'symbols_mcp.server:flask_app' --bind 0.0.0.0:$PORT --workers 2"
 healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"

@@ -783,75 +783,58 @@ Paste your code below:"""
 
 
 # ---------------------------------------------------------------------------
-# Health Check for Railway
+# HTTP Proxy API for Railway
 # ---------------------------------------------------------------------------
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
-# Create FastAPI app for health check
-app = FastAPI()
+# Create Flask app for HTTP proxy
+flask_app = Flask(__name__)
+CORS(flask_app)
 
-@app.get("/health")
-async def health_check():
+@flask_app.route("/health", methods=["GET"])
+def health_check():
     """Health check endpoint for Railway."""
-    return JSONResponse({
+    return jsonify({
         "status": "healthy",
-        "server": "Symbols MCP Server",
+        "service": "Symbols MCP Proxy",
         "tools": len(mcp._tool_manager.list_tools()),
         "resources": len(mcp._resource_manager.list_resources()),
         "prompts": len(mcp._prompt_manager.list_prompts())
     })
 
-@app.get("/")
-async def root():
-    """Root endpoint - redirect to health."""
-    return JSONResponse({
-        "name": "Symbols MCP Server",
-        "version": "1.0.0",
-        "endpoints": {
-            "health": "/health",
-            "sse": "/sse"
-        }
-    })
-
-@app.get("/sse")
-async def sse_endpoint():
-    """SSE endpoint for MCP HTTP transport."""
-    from sse_starlette.sse import EventSourceResponse
+@flask_app.route("/api/chat", methods=["POST"])
+def proxy_chat():
+    """Proxy chat completions to OpenRouter."""
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Server configuration error"}), 500
     
-    async def event_generator():
-        # Send server info
-        yield {
-            "event": "endpoint",
-            "data": json.dumps({
-                "jsonrpc": "2.0",
-                "method": "endpoint",
-                "params": {
-                    "uri": "/message"
-                }
-            })
-        }
+    data = request.json
+    if not data or "messages" not in data:
+        return jsonify({"error": "Invalid request - messages required"}), 400
     
-    return EventSourceResponse(event_generator())
-
-@app.post("/message")
-async def message_endpoint(request: dict):
-    """Message endpoint for MCP HTTP transport."""
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": request.get("id"),
-        "result": {
-            "server": {
-                "name": "Symbols AI Assistant",
-                "version": "1.0.0"
-            },
-            "capabilities": {
-                "tools": {},
-                "resources": {},
-                "prompts": {}
-            }
-        }
-    })
+    try:
+        with httpx.Client() as client:
+            response = client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/baronsilver/symbols-mcp-server",
+                },
+                json={
+                    "model": data.get("model", "openai/gpt-4.1-mini"),
+                    "messages": data["messages"],
+                    "max_tokens": data.get("max_tokens", 4000),
+                    "temperature": data.get("temperature", 0.7),
+                },
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            return jsonify(response.json())
+    except httpx.HTTPError as e:
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -861,10 +844,9 @@ def main():
     # Check if running in Railway (HTTP) or local (stdio)
     transport = os.getenv("RAILWAY_ENVIRONMENT", "stdio")
     if transport == "production":
-        # Railway deployment - run FastAPI app directly
-        import uvicorn
+        # Railway deployment - run Flask proxy app
         port = int(os.getenv("PORT", 8080))
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        flask_app.run(host="0.0.0.0", port=port)
     else:
         # Local development - use stdio transport
         mcp.run(transport="stdio")
