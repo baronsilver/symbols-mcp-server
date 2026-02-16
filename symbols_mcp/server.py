@@ -437,7 +437,7 @@ RULES:
 
 OUTPUT:
 """
-    return await _call_openrouter(prompt, max_tokens=4000, temperature=0.2)
+    return await _call_openrouter(prompt, max_tokens=4000)
 
 
 @mcp.tool()
@@ -478,7 +478,7 @@ OUTPUT FORMAT:
 
 OUTPUT:
 """
-    return await _call_openrouter(prompt, max_tokens=6000, temperature=0.1)
+    return await _call_openrouter(prompt, max_tokens=6000)
 
 
 @mcp.tool()
