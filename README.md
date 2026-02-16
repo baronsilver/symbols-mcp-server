@@ -41,22 +41,40 @@ An MCP (Model Context Protocol) server that exposes the Symbols/DOMQL v3 AI assi
 
 ## Installation
 
-### Prerequisites
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
+### Quick Start (No API Keys Required!)
 
-### Setup
-
+1. **Clone the repository**:
 ```bash
-# Clone and enter the project
-cd C:\repos\symbols-mcp-server
+git clone https://github.com/baronsilver/symbols-mcp-server.git
+cd symbols-mcp-server
+```
 
-# Copy and configure environment variables
-cp .env.example .env
-# Edit .env and add your OPENROUTER_API_KEY
-
-# Install dependencies
+2. **Install dependencies**:
+```bash
+pip install uv
 uv sync
+```
+
+3. **Configure (uses public proxy by default)**:
+```bash
+cp .env.example .env
+# No API key needed! Uses public proxy by default
+```
+
+4. **Test the server**:
+```bash
+uv run symbols-mcp
+```
+
+### Advanced: Use Your Own API Key
+
+If you prefer to use your own OpenRouter API key:
+
+1. Get an API key from https://openrouter.ai
+2. Edit `.env` and uncomment:
+```bash
+# SYMBOLS_PROXY_URL=https://symbols-proxy-production.up.railway.app
+OPENROUTER_API_KEY=your_key_here
 ```
 
 ---

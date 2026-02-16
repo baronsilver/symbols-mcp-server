@@ -55,34 +55,53 @@ def _read_skill(filename: str) -> str:
     return f"Skill file '{filename}' not found at {path}"
 
 
-async def _call_openrouter(
-    prompt: str,
-    model: str | None = None,
-    max_tokens: int = 8000,
-    temperature: float = 0.3,
-) -> str:
-    """Call OpenRouter API and return the text response."""
-    if not OPENROUTER_API_KEY:
-        return "Error: OPENROUTER_API_KEY is not set. Please configure it in .env"
-
-    model = model or LLM_MODEL
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        resp = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+async def _call_openrouter(prompt: str, max_tokens: int = 4000) -> str:
+    """Call OpenRouter API for AI generation via proxy or direct."""
+    # Check if using proxy (no API key needed) or direct (API key required)
+    proxy_url = os.getenv("SYMBOLS_PROXY_URL")
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    
+    if proxy_url:
+        # Use proxy - no API key needed
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{proxy_url}/api/chat",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens,
+                    "temperature": 0.7,
+                },
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+    elif api_key:
+        # Direct OpenRouter call - API key required
+        model = os.getenv("LLM_MODEL", "openai/gpt-4.1-mini")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/baronsilver/symbols-mcp-server",
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens,
+                    "temperature": 0.7,
+                },
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+    else:
+        return "Error: Either SYMBOLS_PROXY_URL or OPENROUTER_API_KEY must be set"
 
 
 def _clean_code_response(text: str) -> str:
