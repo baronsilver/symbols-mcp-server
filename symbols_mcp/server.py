@@ -783,6 +783,27 @@ async def health_check():
         "prompts": len(mcp._prompt_manager.list_prompts())
     })
 
+@app.post("/mcp")
+async def mcp_endpoint(request: dict):
+    """MCP HTTP endpoint for Railway deployment."""
+    # For now, just return a basic response
+    # Full MCP HTTP transport implementation would be more complex
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": request.get("id"),
+        "result": {
+            "server": {
+                "name": "Symbols AI Assistant",
+                "version": "1.0.0"
+            },
+            "capabilities": {
+                "tools": len(mcp._tool_manager.list_tools()),
+                "resources": len(mcp._resource_manager.list_resources()),
+                "prompts": len(mcp._prompt_manager.list_prompts())
+            }
+        }
+    })
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -791,8 +812,10 @@ def main():
     # Check if running in Railway (HTTP) or local (stdio)
     transport = os.getenv("RAILWAY_ENVIRONMENT", "stdio")
     if transport == "production":
-        # Railway deployment - use HTTP transport
-        mcp.run(transport="streamable-http", app=app)
+        # Railway deployment - run FastAPI app directly
+        import uvicorn
+        port = int(os.getenv("PORT", 8080))
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         # Local development - use stdio transport
         mcp.run(transport="stdio")

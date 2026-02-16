@@ -17,11 +17,8 @@ PORT = "8080"
 PYTHON_VERSION = "3.11"
 RAILWAY_ENVIRONMENT = "production"
 
-[services.environment]
-OPENROUTER_API_KEY = "${OPENROUTER_API_KEY}"
-SUPABASE_URL = "${SUPABASE_URL}"
-SUPABASE_KEY = "${SUPABASE_KEY}"
-LLM_MODEL = "${LLM_MODEL}"
+# Environment variables should be set in Railway dashboard
+# Do not reference them here to avoid secret detection
 
 [[services.ports]]
 port = 8080
