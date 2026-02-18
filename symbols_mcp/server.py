@@ -208,6 +208,19 @@ RULES:
 6. Keep folders flat — this is a single component file.
 7. Follow the modern UI/UX direction: clarity, hierarchy, minimal cognitive load.
 
+CRITICAL ICON RULES — ALWAYS FOLLOW:
+8. NEVER use `Icon` component inside `Button` or `Flex+tag:button` — it will NOT render.
+9. For icon buttons, use `extends: 'Flex', tag: 'button'` with a `Svg` child (key must be `Svg`):
+   MyBtn: {{ extends: 'Flex', tag: 'button', flexAlign: 'center center', cursor: 'pointer',
+     Svg: {{ viewBox: '0 0 24 24', width: '22', height: '22', color: 'flame',
+       html: '<path d="..." fill="currentColor"/>' }} }}
+10. The `html` prop ONLY works on the `Svg` atom — NOT on Flex/Box/Button.
+11. For standalone SVG icons (not in buttons), use key name `Svg` directly.
+12. Use `flexAlign` (not `align`) for alignItems+justifyContent shorthand on Flex.
+13. Functions called via `el.call('fnName', arg)` receive the element as `this`, NOT as first arg.
+    Inside functions: use `this.node` for DOM access. NEVER pass `el` as an argument to `el.call()`.
+14. In `onRender`, guard against double-init: `if (el.__initialized) return; el.__initialized = true`.
+
 OUTPUT:
 """
     response = await _call_openrouter(prompt)
@@ -247,6 +260,16 @@ RULES:
 6. Include onRender/onInit for data loading if the page needs dynamic data.
 7. Follow modern UI/UX: clear hierarchy, confident typography, balanced composition.
 8. Pages use dash-case filenames but camelCase exports.
+
+CRITICAL RULES — ALWAYS FOLLOW:
+9. NEVER use `Icon` inside `Button` or `Flex+tag:button` — use `Svg` atom with `html` prop instead.
+   IconBtn: {{ extends: 'Flex', tag: 'button', flexAlign: 'center center', cursor: 'pointer',
+     Svg: {{ viewBox: '0 0 24 24', width: '22', height: '22', color: 'primary',
+       html: '<path d="..." fill="currentColor"/>' }} }}
+10. `html` prop ONLY works on `Svg` atom — NOT on Flex/Box/Button.
+11. Use `flexAlign` (not `align`) for combined alignItems+justifyContent on Flex.
+12. `el.call('fn', arg)` passes element as `this` inside fn — NEVER pass `el` as argument.
+13. Guard `onRender` against double-init: `if (el.__initialized) return; el.__initialized = true`.
 
 OUTPUT:
 """
@@ -306,6 +329,16 @@ RULES:
 6. Components use named exports (export const X = {{}}), designSystem uses default exports.
 7. NO imports between project files for components — reference by PascalCase key.
 8. Output ONLY the JSON — no markdown fences, no explanations.
+
+CRITICAL ICON & LAYOUT RULES:
+9. NEVER use `Icon` inside `Button` or `Flex+tag:button` — icons will NOT render. Use `Svg` atom:
+   Btn: {{ extends: 'Flex', tag: 'button', flexAlign: 'center center', cursor: 'pointer',
+     Svg: {{ viewBox: '0 0 24 24', width: '22', height: '22', color: 'primary',
+       html: '<path d="..." fill="currentColor"/>' }} }}
+10. `html` prop ONLY works on `Svg` atom — NOT on Flex/Box/Button.
+11. Use `flexAlign` (not `align`) for alignItems+justifyContent shorthand on Flex.
+12. Functions via `el.call('fn', arg)` receive element as `this` — NEVER pass `el` as arg.
+13. Guard `onRender` double-init: `if (el.__initialized) return; el.__initialized = true`.
 
 OUTPUT:
 """

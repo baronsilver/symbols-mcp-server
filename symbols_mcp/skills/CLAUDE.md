@@ -1938,3 +1938,221 @@ export default {
 - Hardcode styles — use design tokens
 - Add top-level `import`/`require` for project files
 - Nest properties inside @media queries (replace at same level only)
+
+---
+
+## CRITICAL: Icon Rendering in Buttons (Verified Patterns)
+
+This section documents **verified working patterns** for rendering icons. Incorrect patterns cause silent failures where buttons render as empty shapes.
+
+### The `Icon` Component Limitation
+
+The `Icon` component (sprite-based) **does NOT render** when nested inside `Button` or `Flex+tag:button` elements. This is a known limitation.
+
+```js
+// BROKEN — Icon will NOT render inside Button or Flex+tag:button
+MyBtn: {
+  extends: 'Button',
+  Icon: { extends: 'Icon', name: 'heart' }  // ❌ Silent failure
+}
+
+MyBtn: {
+  extends: 'Flex',
+  tag: 'button',
+  Icon: { extends: 'Icon', name: 'heart' }  // ❌ Silent failure
+}
+```
+
+### CORRECT: Use `Svg` Atom with `html` Prop
+
+The `Svg` atom with the `html` prop is the **only reliable way** to render icons inside button-like elements. The child key **must be named `Svg`** (not `FlameIcon`, `MyIcon`, etc.) for auto-resolution to work.
+
+```js
+// CORRECT — Svg atom with html prop inside Flex+tag:button
+MyBtn: {
+  extends: 'Flex',
+  tag: 'button',
+  flexAlign: 'center center',
+  cursor: 'pointer',
+  background: 'transparent',
+  border: 'none',
+
+  Svg: {
+    viewBox: '0 0 24 24',
+    width: '22',
+    height: '22',
+    color: 'flame',
+    html: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="currentColor"/>'
+  }
+}
+```
+
+### `html` Prop Only Works on `Svg` Atom
+
+The `html` prop sets `innerHTML` **only on the `Svg` atom**. It does NOT work on `Box`, `Flex`, or `Button`.
+
+```js
+// BROKEN — html prop ignored on Flex/Box/Button
+{ extends: 'Flex', html: '<svg>...</svg>' }  // ❌
+
+// CORRECT — html prop works on Svg atom
+{ Svg: { viewBox: '0 0 24 24', html: '<path .../>' } }  // ✅
+```
+
+### Standalone Svg (not inside a button)
+
+When using `Svg` as a standalone element (e.g., logo icon in a header), the key name must be `Svg` or use `extends: 'Svg'`:
+
+```js
+LogoArea: {
+  extends: 'Flex',
+  flexAlign: 'center center',
+  gap: 'Z',
+
+  Svg: {                          // Key IS 'Svg' — auto-resolves
+    viewBox: '0 0 24 24',
+    width: '22', height: '22',
+    color: 'flame',
+    html: '<path d="..." fill="currentColor"/>'
+  },
+
+  LogoText: { extends: 'Text', text: 'myapp' }
+}
+```
+
+### Nav Tabs with Icon + Label
+
+For navigation tabs that need both an icon and a text label:
+
+```js
+NavItem: {
+  extends: 'Flex',
+  tag: 'button',
+  flow: 'y',
+  flexAlign: 'center center',
+  gap: 'Y',
+  flex: 1,
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer'
+},
+
+DiscoverTab: {
+  extends: 'NavItem',
+  Svg: {
+    viewBox: '0 0 24 24', width: '22', height: '22', color: 'flame',
+    html: '<path d="..." fill="currentColor"/>'
+  },
+  Label: { extends: 'Text', text: 'Discover', fontSize: 'X', color: 'flame' }
+}
+```
+
+---
+
+## CRITICAL: `el.call()` Function Context
+
+When a function is called via `el.call('functionName', arg1, arg2)`:
+
+- The **DOMQL element** is passed as `this` inside the function — NOT as the first argument
+- `arg1`, `arg2` etc. are the additional arguments
+- Access the DOM node via `this.node` (not `this.__node`)
+
+```js
+// functions/myFunction.js
+export const myFunction = function myFunction (arg1) {
+  const el = this           // 'this' IS the DOMQL element
+  const node = this.node    // DOM node
+  // arg1 is the first argument passed to el.call('myFunction', arg1)
+}
+
+// In component — call without passing el as argument
+onClick: (e, el) => el.call('myFunction', someArg)  // ✅ correct
+onClick: (e, el) => el.call('myFunction', el, someArg)  // ❌ wrong — el passed twice
+```
+
+### Preventing Double Initialization in `onRender`
+
+`onRender` fires on every render cycle. Use a guard flag to run imperative logic only once:
+
+```js
+CardStack: {
+  extends: 'Box',
+  flex: 1,
+  position: 'relative',
+
+  onRender: (el) => {
+    if (el.__initialized) return   // Guard against double-init
+    el.__initialized = true
+    el.call('initMyLogic')
+  }
+}
+```
+
+### Accessing DOM Node in Functions
+
+```js
+export const initMyLogic = function initMyLogic () {
+  const node = this.node                        // ✅ correct
+  if (!node || !node.appendChild) return        // Guard for safety
+
+  // Imperative DOM manipulation
+  node.innerHTML = ''
+  const div = document.createElement('div')
+  node.appendChild(div)
+}
+```
+
+---
+
+## CRITICAL: Flex Layout Properties
+
+Use `flexAlign` (not `align`) for combined alignItems + justifyContent shorthand. Use `flow` (not `flexFlow`) for direction shorthand.
+
+```js
+// CORRECT
+{ extends: 'Flex', flexAlign: 'center center', flow: 'y' }
+
+// Also valid (explicit)
+{ extends: 'Flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }
+
+// WRONG — 'align' is not a valid shorthand in v3
+{ extends: 'Flex', align: 'center center' }  // ❌ has no effect
+```
+
+---
+
+## CRITICAL: Tab/View Switching with DOM IDs
+
+For multi-tab layouts where views are shown/hidden imperatively, assign `id` props to views and tabs, then use `document.getElementById` in switch functions:
+
+```js
+// In page definition — assign ids
+ContentArea: {
+  DiscoverView: { id: 'view-discover', position: 'absolute', inset: 0, display: 'flex' },
+  MessagesView: { id: 'view-messages', position: 'absolute', inset: 0, display: 'none' }
+},
+
+BottomNav: {
+  DiscoverTab: {
+    id: 'tab-discover',
+    onClick: (e, el) => el.call('switchTab', 'discover')
+  }
+}
+
+// functions/switchTab.js
+export const switchTab = function switchTab (tab) {
+  const views = ['discover', 'messages', 'likes', 'profile']
+  views.forEach(v => {
+    const viewEl = document.getElementById('view-' + v)
+    const navEl = document.getElementById('tab-' + v)
+    if (viewEl) viewEl.style.display = v === tab ? 'flex' : 'none'
+    if (navEl) {
+      const svg = navEl.querySelector('svg')
+      const span = navEl.querySelector('span')
+      const color = v === tab ? '#FF4458' : '#777'
+      if (svg) svg.style.color = color
+      if (span) span.style.color = color
+    }
+  })
+}
+```
