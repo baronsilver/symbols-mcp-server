@@ -25,6 +25,26 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4.1-mini")
 SKILLS_DIR = os.getenv("SYMBOLS_SKILLS_DIR", str(Path(__file__).resolve().parent / "skills"))
 
+
+def _fetch_remote_config() -> None:
+    """Fetch Supabase credentials from the proxy server when not set locally."""
+    global SUPABASE_URL, SUPABASE_KEY
+    proxy_url = os.getenv("SYMBOLS_MCP_URL")
+    if not proxy_url or (SUPABASE_URL and SUPABASE_KEY):
+        return
+    try:
+        import httpx as _httpx
+        resp = _httpx.get(f"{proxy_url}/api/config", timeout=10.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            SUPABASE_URL = data.get("supabase_url", "")
+            SUPABASE_KEY = data.get("supabase_key", "")
+    except Exception:
+        pass
+
+
+_fetch_remote_config()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("symbols-mcp")
 
@@ -363,21 +383,27 @@ async def search_symbols_docs(
     """
     if not SUPABASE_URL or not SUPABASE_KEY:
         # Fall back to local skills search if no Supabase
+        keywords = [w for w in re.split(r"\s+", query.lower()) if len(w) > 2]
+        if not keywords:
+            keywords = [query.lower()]
         results = []
         for fname in SKILLS_PATH.glob("*.md"):
             content = fname.read_text(encoding="utf-8")
-            if query.lower() in content.lower():
-                # Find relevant section
-                lines = content.split("\n")
-                for i, line in enumerate(lines):
-                    if query.lower() in line.lower():
-                        start = max(0, i - 2)
-                        end = min(len(lines), i + 20)
-                        snippet = "\n".join(lines[start:end])
-                        results.append({"file": fname.name, "snippet": snippet})
-                        break
-                if len(results) >= max_results:
+            content_lower = content.lower()
+            if not any(kw in content_lower for kw in keywords):
+                continue
+            # Find the first line that contains any keyword
+            lines = content.split("\n")
+            for i, line in enumerate(lines):
+                line_lower = line.lower()
+                if any(kw in line_lower for kw in keywords):
+                    start = max(0, i - 2)
+                    end = min(len(lines), i + 20)
+                    snippet = "\n".join(lines[start:end])
+                    results.append({"file": fname.name, "snippet": snippet})
                     break
+            if len(results) >= max_results:
+                break
 
         if results:
             return json.dumps(results, indent=2)
@@ -801,6 +827,16 @@ async def health_check():
         "resources": len(mcp._resource_manager.list_resources()),
         "prompts": len(mcp._prompt_manager.list_prompts())
     })
+
+@app.get("/api/config")
+async def proxy_config():
+    """Expose Supabase credentials to MCP clients using the proxy."""
+    supabase_url = os.getenv("SUPABASE_URL", "")
+    supabase_key = os.getenv("SUPABASE_KEY", "")
+    if not supabase_url or not supabase_key:
+        return JSONResponse({"error": "Supabase not configured"}, status_code=404)
+    return JSONResponse({"supabase_url": supabase_url, "supabase_key": supabase_key})
+
 
 @app.post("/api/chat")
 async def proxy_chat(request: dict):
