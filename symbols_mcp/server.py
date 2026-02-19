@@ -172,6 +172,19 @@ def _get_symbols_context() -> str:
 
 
 @mcp.tool()
+def get_project_rules() -> str:
+    """ALWAYS call this first before any generate_* tool.
+
+    Returns the mandatory Symbols/DOMQL v3 rules that MUST be followed.
+    Violations cause silent failures — black page, nothing renders.
+
+    Call this before: generate_project, generate_component, generate_page,
+    convert_to_symbols, or any code generation task.
+    """
+    return _load_agent_instructions()
+
+
+@mcp.tool()
 async def generate_component(
     description: str,
     component_name: str = "GeneratedComponent",
@@ -400,6 +413,15 @@ CRITICAL RULES — violations cause silent failures (black page, nothing renders
 14. `el.call('fn', arg)` — element is `this` inside fn — NEVER pass `el` as argument.
 15. Guard `onRender`: `if (el.__initialized) return; el.__initialized = true`
 16. State updates: `s.update({{ key: val }})` — NEVER mutate `s.key = val` directly.
+17. `childExtends` MUST be a string name — NEVER an inline object. Inline objects dump all prop values as visible text on every child:
+    WRONG: childExtends: {{ tag: 'button', color: 'white', border: '2px solid transparent' }}
+    CORRECT: childExtends: 'NavLink'  (define NavLink as a named component in components/)
+18. Color opacity: NEVER use `color: 'white .7'` — it renders as raw text. Define named tokens:
+    COLOR.js: {{ whiteMuted: 'rgba(255,255,255,0.7)', whiteSubtle: 'rgba(255,255,255,0.6)' }}
+    Then use: `color: 'whiteMuted'`
+18. Border shorthand: NEVER use `border: '2px solid transparent'` — it renders as raw text.
+    Always split: `borderWidth: '2px', borderStyle: 'solid', borderColor: 'transparent'`
+    Only `border: 'none'` is safe as a shorthand.
 
 OUTPUT:
 """

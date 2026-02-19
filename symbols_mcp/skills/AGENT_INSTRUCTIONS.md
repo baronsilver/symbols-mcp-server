@@ -176,6 +176,66 @@ onRender: (el) => {
 
 ---
 
+## 14. `childExtends` — MUST be a named component string, never an inline object
+
+Inline `childExtends` objects cause ALL property values to be concatenated as visible text content on every child element.
+
+```js
+// CORRECT — reference a named component
+childExtends: 'NavLink'
+
+// WRONG — dumps all prop values as raw text on every child
+childExtends: {
+  tag: 'button',
+  background: 'transparent',
+  border: '2px solid transparent',  // renders as visible text!
+  color: 'white'
+}
+```
+
+Define the shared style as a named component in `components/`, register it in `components/index.js`, then reference it by name.
+
+---
+
+## 15. Color tokens — NO opacity modifier syntax
+
+`color: 'white .7'` is NOT valid — Symbols renders it as raw text content.
+Define named tokens in `designSystem/COLOR.js` instead:
+
+```js
+// designSystem/COLOR.js
+export default {
+  whiteMuted: 'rgba(255,255,255,0.7)',
+  whiteSubtle: 'rgba(255,255,255,0.6)',
+  whiteFaint:  'rgba(255,255,255,0.5)',
+}
+
+// In component — CORRECT
+{ color: 'whiteMuted' }
+
+// WRONG — renders as literal text, not a style
+{ color: 'white .7' }
+{ color: 'black .5' }
+```
+
+---
+
+## 15. Border shorthand — split into individual props
+
+`border: '2px solid transparent'` in `childExtends` or any Symbols prop renders the raw string as text content. Always split:
+
+```js
+// CORRECT
+{ borderWidth: '2px', borderStyle: 'solid', borderColor: 'transparent' }
+
+// WRONG — raw string appears as visible text
+{ border: '2px solid transparent' }
+```
+
+`border: 'none'` is the only shorthand that works safely.
+
+---
+
 ## Project structure quick reference
 
 ```
