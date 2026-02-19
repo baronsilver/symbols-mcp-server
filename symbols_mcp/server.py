@@ -48,17 +48,26 @@ _fetch_remote_config()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("symbols-mcp")
 
+
+def _load_agent_instructions() -> str:
+    """Load the upfront AI agent instructions from AGENT_INSTRUCTIONS.md."""
+    path = Path(SKILLS_DIR) / "AGENT_INSTRUCTIONS.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return (
+        "AI-powered assistant for the Symbols design-system framework. "
+        "Generates DOMQL v3 components, pages, and full projects; converts "
+        "React/Angular/Vue code to Symbols; searches Symbols documentation; "
+        "and provides comprehensive framework reference."
+    )
+
+
 # ---------------------------------------------------------------------------
 # MCP Server
 # ---------------------------------------------------------------------------
 mcp = FastMCP(
     "Symbols AI Assistant",
-    instructions=(
-        "AI-powered assistant for the Symbols design-system framework. "
-        "Generates DOMQL v3 components, pages, and full projects; converts "
-        "React/Angular/Vue code to Symbols; searches Symbols documentation; "
-        "and provides comprehensive framework reference."
-    ),
+    instructions=_load_agent_instructions(),
 )
 
 # ---------------------------------------------------------------------------
@@ -320,25 +329,77 @@ OUTPUT FORMAT — Return a JSON object with this exact structure:
   ]
 }}
 
+MANDATORY FILE TEMPLATES — every generated project MUST follow these exactly:
+
+smbls/components/index.js — MUST use `export *` NOT `export * as`:
+  export * from './Navbar.js'
+  export * from './Card.js'
+  // one line per component — NEVER: export * as Navbar from './Navbar.js'
+
+smbls/pages/index.js — the ONLY file where imports are allowed:
+  import {{ main }} from './main.js'
+  export default {{ '/': main }}
+
+smbls/pages/main.js — pages MUST extend 'Page':
+  export const main = {{ extends: 'Page', ... }}
+  // NEVER: extends: 'Flex' or extends: 'Box' for a page
+
+smbls/functions/index.js:
+  export * from './myFunction.js'
+
+smbls/functions/myFunction.js — functions use named function expressions:
+  export const myFunction = function myFunction(arg) {{
+    const node = this.node  // 'this' is the DOMQL element, NOT a parameter
+  }}
+
+smbls/state.js — inline initial state, NO imports:
+  export default {{ activePage: 'home', user: {{}}, items: [] }}
+
+smbls/index.js — root registry:
+  export {{ default as state }} from './state.js'
+  export {{ default as dependencies }} from './dependencies.js'
+  export * as components from './components/index.js'
+  export {{ default as pages }} from './pages/index.js'
+  export * as functions from './functions/index.js'
+  export * as methods from './methods/index.js'
+  export {{ default as designSystem }} from './designSystem/index.js'
+
+MULTI-VIEW NAVIGATION — use DOM IDs + switchView function, NOT reactive display bindings:
+  // In main page — assign id to each view:
+  HomeView: {{ id: 'view-home', extends: 'Flex', flexDirection: 'column' }},
+  AboutView: {{ id: 'view-about', extends: 'Flex', flexDirection: 'column', display: 'none' }},
+  // In Navbar onClick:
+  onClick: (e, el) => {{ el.call('switchView', 'about') }}
+  // In functions/switchView.js:
+  export const switchView = function switchView(view) {{
+    ['home', 'about'].forEach(function(v) {{
+      const el = document.getElementById('view-' + v)
+      if (el) el.style.display = v === view ? 'flex' : 'none'
+    }})
+  }}
+
 RULES:
-1. Include ALL required files: index.js, config.js, vars.js, dependencies.js, pages/index.js, components/index.js, functions/index.js, designSystem/index.js
-2. Generate 6-10 meaningful files covering components, pages, design system, and state.
-3. Use DOMQL v3 syntax exclusively. NO React/Vue/Angular syntax.
-4. Use design-system tokens, not hardcoded pixel values.
-5. All folders are FLAT — no subfolders within components/, pages/, etc.
-6. Components use named exports (export const X = {{}}), designSystem uses default exports.
-7. NO imports between project files for components — reference by PascalCase key.
+1. Include ALL required files: smbls/index.js, smbls/state.js, smbls/dependencies.js, smbls/pages/index.js, smbls/components/index.js, smbls/functions/index.js, smbls/designSystem/index.js
+2. Generate meaningful component, page, and function files for the described app.
+3. Use DOMQL v3 syntax exclusively — NO React/Vue/Angular syntax.
+4. Use design-system tokens for spacing/colors — NOT hardcoded pixel values.
+5. All folders are FLAT — no subfolders within components/, pages/, functions/, etc.
+6. Components: named exports (`export const X = {{}}`). DesignSystem: default exports.
+7. NO imports between component/function/page files — reference components by PascalCase key in tree.
 8. Output ONLY the JSON — no markdown fences, no explanations.
 
-CRITICAL ICON & LAYOUT RULES:
-9. NEVER use `Icon` inside `Button` or `Flex+tag:button` — icons will NOT render. Use `Svg` atom:
-   Btn: {{ extends: 'Flex', tag: 'button', flexAlign: 'center center', cursor: 'pointer',
-     Svg: {{ viewBox: '0 0 24 24', width: '22', height: '22', color: 'primary',
-       html: '<path d="..." fill="currentColor"/>' }} }}
-10. `html` prop ONLY works on `Svg` atom — NOT on Flex/Box/Button.
-11. Use `flexAlign` (not `align`) for alignItems+justifyContent shorthand on Flex.
-12. Functions via `el.call('fn', arg)` receive element as `this` — NEVER pass `el` as arg.
-13. Guard `onRender` double-init: `if (el.__initialized) return; el.__initialized = true`.
+CRITICAL RULES — violations cause silent failures (black page, nothing renders):
+9. `components/index.js`: ALWAYS `export * from './X.js'` — NEVER `export * as X from './X.js'`
+10. Pages: ALWAYS `extends: 'Page'` — NEVER `extends: 'Flex'` or `extends: 'Box'`
+11. NEVER use `Icon` inside `Button` or `Flex+tag:button` — use `Svg` atom with `html` prop:
+    Btn: {{ extends: 'Flex', tag: 'button', flexAlign: 'center center', cursor: 'pointer',
+      Svg: {{ viewBox: '0 0 24 24', width: '22', height: '22',
+        html: '<path d="..." fill="currentColor"/>' }} }}
+12. `html` prop ONLY works on `Svg` atom — NOT on Flex/Box/Button.
+13. `flexAlign` (not `align`) for alignItems+justifyContent shorthand on Flex.
+14. `el.call('fn', arg)` — element is `this` inside fn — NEVER pass `el` as argument.
+15. Guard `onRender`: `if (el.__initialized) return; el.__initialized = true`
+16. State updates: `s.update({{ key: val }})` — NEVER mutate `s.key = val` directly.
 
 OUTPUT:
 """
@@ -442,7 +503,30 @@ async def search_symbols_docs(
             return json.dumps(results, indent=2)
         return f"No results found for '{query}'. Try a different search term."
 
-    # Use Supabase vector search if available
+    # Always run local keyword search
+    keywords = [w for w in re.split(r"\s+", query.lower()) if len(w) > 2]
+    if not keywords:
+        keywords = [query.lower()]
+    local_results = []
+    for fname in SKILLS_PATH.glob("*.md"):
+        content = fname.read_text(encoding="utf-8")
+        content_lower = content.lower()
+        if not any(kw in content_lower for kw in keywords):
+            continue
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            line_lower = line.lower()
+            if any(kw in line_lower for kw in keywords):
+                start = max(0, i - 2)
+                end = min(len(lines), i + 20)
+                snippet = "\n".join(lines[start:end])
+                local_results.append({"file": fname.name, "snippet": snippet})
+                break
+        if len(local_results) >= max_results:
+            break
+
+    # Also query Supabase vector search if available
+    supabase_results = []
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
@@ -455,20 +539,21 @@ async def search_symbols_docs(
                 json={"query_text": query, "match_count": max_results},
             )
             if resp.status_code == 200:
-                docs = resp.json()
-                results = []
-                for doc in docs[:max_results]:
-                    results.append({
+                for doc in resp.json()[:max_results]:
+                    supabase_results.append({
                         "title": doc.get("title", "Untitled"),
                         "content": doc.get("content", "")[:1000],
                         "similarity": doc.get("similarity", 0),
                     })
-                return json.dumps(results, indent=2)
             else:
-                return f"Search API returned status {resp.status_code}. Falling back to local search."
+                logger.warning(f"Supabase search returned status {resp.status_code}.")
     except Exception as e:
         logger.warning(f"Supabase search failed: {e}")
-        return f"Search failed: {str(e)}"
+
+    results = supabase_results + local_results
+    if results:
+        return json.dumps(results[:max_results], indent=2)
+    return f"No results found for '{query}'. Try a different search term."
 
 
 @mcp.tool()
