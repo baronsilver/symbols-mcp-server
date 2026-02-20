@@ -53,14 +53,17 @@ cd symbols-mcp-server
 ```bash
 pip install uv
 uv sync
+npm i @symbo.ls/cli -g
+smbls create your-project
 ```
+IMPORTANT: For now, delete the docs folder inside your project folder after creation
 
 3. **Configure**:
 ```bash
 cp .env.example .env
-# Edit .env and add either:
+# Edit .env and add both:
 # - SYMBOLS_MCP_URL (contact maintainer for public server URL)
-# - Or your own OPENROUTER_API_KEY from https://openrouter.ai
+# - LLM_MODEL=google/gemini-3-flash-preview
 ```
 
 ## Platform Integration
@@ -71,7 +74,7 @@ cp .env.example .env
 claude mcp add symbols-mcp -- uv run --directory C:\repos\symbols-mcp-server symbols-mcp
 ```
 
-Or manually edit `~/.claude/claude_desktop_config.json`:
+Or manually edit `~/UserName/.claude.json`:
 ```json
 {
   "mcpServers": {
@@ -134,30 +137,6 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
-### Alternative: Using pip
-
-If you prefer pip over uv:
-
-```bash
-pip install -e C:\repos\symbols-mcp-server
-```
-
-Then use `symbols-mcp` as the command in any MCP config:
-
-```json
-{
-  "mcpServers": {
-    "symbols-mcp": {
-      "command": "symbols-mcp",
-      "env": {
-        "OPENROUTER_API_KEY": "your_key_here"
-      }
-    }
-  }
-}
-```
-
----
 
 ## Development
 
