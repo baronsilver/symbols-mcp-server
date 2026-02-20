@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import re
+import asyncio
 from pathlib import Path
 from typing import Optional
 
@@ -85,52 +86,82 @@ def _read_skill(filename: str) -> str:
 
 
 async def _call_openrouter(prompt: str, max_tokens: int = 4000) -> str:
-    """Call OpenRouter API for AI generation via proxy or direct."""
-    # Check if using proxy (no API key needed) or direct (API key required)
+    """Call OpenRouter API for AI generation via proxy or direct.
+
+    Retries up to 3 times with exponential backoff on transient
+    network errors (DNS failures, connection resets, timeouts).
+    """
     proxy_url = os.getenv("SYMBOLS_MCP_URL")
     api_key = os.getenv("OPENROUTER_API_KEY")
-    
-    if proxy_url:
-        # Use proxy - no API key needed
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{proxy_url}/api/chat",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "model": os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": max_tokens,
-                    "temperature": 0.7,
-                },
-                timeout=60.0,
-            )
-            response.raise_for_status()
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-    elif api_key:
-        # Direct OpenRouter call - API key required
-        model = os.getenv("LLM_MODEL", "openai/gpt-4.1-mini")
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://github.com/baronsilver/symbols-mcp-server",
-                },
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": max_tokens,
-                    "temperature": 0.7,
-                },
-                timeout=60.0,
-            )
-            response.raise_for_status()
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-    else:
+
+    if not proxy_url and not api_key:
         return "Error: Either SYMBOLS_MCP_URL or OPENROUTER_API_KEY must be set"
+
+    # Determine target host for diagnostics
+    if proxy_url:
+        from urllib.parse import urlparse
+        target_host = urlparse(proxy_url).netloc or proxy_url
+    else:
+        target_host = "openrouter.ai"
+
+    max_retries = 4
+    last_error: Exception | None = None
+
+    for attempt in range(max_retries):
+        if attempt > 0:
+            wait = 3 * attempt  # 3s, 6s, 9s
+            logger.warning("Network error on attempt %d/%d, retrying in %ds: %s", attempt + 1, max_retries, wait, last_error)
+            await asyncio.sleep(wait)
+
+        try:
+            async with httpx.AsyncClient() as client:
+                if proxy_url:
+                    response = await client.post(
+                        f"{proxy_url}/api/chat",
+                        headers={"Content-Type": "application/json"},
+                        json={
+                            "model": os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+                            "messages": [{"role": "user", "content": prompt}],
+                            "max_tokens": max_tokens,
+                            "temperature": 0.7,
+                        },
+                        timeout=60.0,
+                    )
+                else:
+                    response = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://github.com/baronsilver/symbols-mcp-server",
+                        },
+                        json={
+                            "model": os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+                            "messages": [{"role": "user", "content": prompt}],
+                            "max_tokens": max_tokens,
+                            "temperature": 0.7,
+                        },
+                        timeout=60.0,
+                    )
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+
+        except httpx.ConnectError as e:
+            last_error = e
+            continue  # retry — includes DNS failures from proxy cold-starts
+        except (httpx.TimeoutException, httpx.RemoteProtocolError) as e:
+            last_error = e
+            continue
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code >= 500:
+                last_error = e
+                continue
+            raise
+
+    return (
+        f"Error: Network request to '{target_host}' failed after {max_retries} attempts. "
+        f"Last error: {last_error}"
+    )
 
 
 def _clean_code_response(text: str) -> str:
